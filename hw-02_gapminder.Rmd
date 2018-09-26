@@ -1,0 +1,207 @@
+---
+title: "STAT 545A HW-02"
+output:
+  md_document: default
+  github_document(): default
+---
+
+## R Markdown
+
+This is the R Markdown document for hw02, which is a continuation of hw01 - further exploring the gapminder dataset. To explore the data this time around, we will be using the [*dplyr*](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html) package. Functons such as *filter()*, *select()*, and *piping (%>%)* will be used to explore categorical and quantitative variables on their own, and also explore their potential relationships.
+
+<br/>
+*For additional information on functions used in this exercise, type "?" and the function as one word in the console and the R help documentation will explain the function and the object needed to run the function successfully*
+
+<br/>
+
+## Viewing and Exploring the Dataset
+
+We can load the dataset into our R-Studio environment through **library(gapminder)**. Likewise, we will load the tidyverse package through **library(tidyverse)**, which will import the dplyr package.
+
+```{r load, warning = FALSE, message = FALSE}
+library(gapminder)
+library(tidyverse)
+```
+<br/>
+
+## Smell Test the Data
+
+Let's start by exploring the gapminder object:
+
+```{r gapminder obj}
+str(gapminder)
+class(gapminder)
+typeof(gapminder)
+```
+<br/>
+
+The *str* function gives the internal structure of the gapminder object. From the R-output, we can see that the gapminder dataset is a data frame with 6 variables/columns and 1706 observations/rows. The *str* function will also denote the class of each variable in the gapminder dataset (in our situation: Factor for country and continent, integer for year and population, and numerical for life expectancy)
+
+<br/>
+
+The gapminder object is stored in memory of a **list** and the gapminder has an abstract type of a **data frame**
+
+<br/>
+
+There are other ways or functions we can use to find the structure of the dataset and information about the variables within the data frame:
+
+```{r alt structure}
+ncol(gapminder)
+nrow(gapminder)
+names(gapminder)
+data <- gapminder
+```
+<br/>
+
+As observed, the functions *ncol* and *nrow* gives you the number of columns and rows of the dataset respectively, while the *name* function will give you the names of the variables in the dataset with the correct order. 
+
+<br/>
+
+Lastly you can also try assigning the gapminder dataset to a variable *(named data in this scenario)* in your console, and then the top right area of your **R-Studio Global Environment** will give you the number of observations and number of variables in the gapminder dataset.
+
+<br/>
+
+Lets now explore the data type of each variable in the gapminder dataset:
+```{r variables}
+class(gapminder$country)
+class(gapminder$continent)
+class(gapminder$year)
+class(gapminder$lifeExp)
+class(gapminder$pop)
+class(gapminder$gdpPercap)
+lapply(gapminder, class)
+
+```
+<br/>
+
+You can isolate each variable in the dataset by adding the '$' sign next the the gapminder dataset and then typing out the variable of your interest. You can do this for each variable and find their class as seen above.
+
+<br/>
+
+However, the *lapply()* function will save you time of typing each variable out and give you the same output by listing all variables in the dataset and their class. The *lapply()* function traverses over a set of data like a list or vector, and calls the specified function for each item and provides its output.
+
+<br/>
+
+## Exploring the Variables
+
+Lets explore the variables in the gapminder dataset. There are 6 variables: country, continent, year, life expectancy, population, and GDP per capita.
+
+### Country
+```{r country summary}
+table(gapminder$country)
+length(table(gapminder$country))
+```
+<br/>
+
+There are 142 unique countries in the gapminder data set, and each country has 12 observations.
+
+### Continent
+```{r continent summary}
+table(gapminder$continent)
+table(gapminder$continent)/nrow(gapminder) * 100
+```
+<br/>
+
+Over one third of the countries in the gapminder dataset were from Africa (36.6%), while the Oceania region had the lowest number of observations (1.4%).
+
+### Year
+```{r year summary}
+table(gapminder$year)
+length(table(gapminder$year))
+summary(gapminder$year)
+```
+<br/>
+
+The gapminder dataset collects one observation for each country every 5 years, with the first timepoint starting in 1952. Data was collected onwards all the way to 2007, for a total of 12 observations for each country.
+
+### Life Expectancy
+```{r lifeExp summary}
+summary(gapminder$lifeExp)
+tapply(gapminder$lifeExp, gapminder$country, summary) 
+tapply(gapminder$lifeExp, gapminder$continent, summary) 
+```
+<br/>
+
+In the gapminder dataset, the minimum life expectancy came out to be 23.60 years and the maximum came to be 82.60 years. The mean life expectancy (59.47 years) is slightly lower than the median (60.71 years), indicating a slight skew to the left for lifee expectancy. Thus this indicates the gapminder dataset has more observations of countries with higher life expectancy. 
+
+<br/>
+
+The summary of life expectancy for each country can be obtained through the *tapply* function as seen above, which applies the summary function to life expectancy, by country. Likewise, you can summarize life expectancy by continent instead for somewhat less specific summary statistics, given there are lots of countries in this dataset to analyze.
+
+### Population
+
+```{r population summary}
+summary(gapminder$pop)
+```
+<br/>
+
+In the gapminder dataset, the minimum population was 60,010 and the maximum was 1,319,000,000. The mean population (7,024,000) is noticeable lower than the median (29,600,000), indicating a possible heavy skew to the left for population. This could perhaps be attributed to the fact that this dataset in general collected information from countries with higher population more often than not. A similar tapply() function seen in life expectancy can be used in this scenario to look at the summary values for population by country.
+
+```{r GDP per Capita summary}
+summary(gapminder$gdpPercap)
+```
+
+<br/>
+
+In the gapminder dataset, the minimum GDP per capita is 241.2 and the maximum is 113,500. The mean value (3532) is slightly lower than the median (7215), indicating a slight skew to the left for population. Once again, a similar process with the tapply() function seen in life expectancy can be used in this scenario to look at the summary values for GDP per capita by country.
+
+## Piping with select(), filter(), arrange()
+Suppose we are interested in looking at specific variables for some countries, we can accomplish this through piping the gapminder dataset through a filter and selecting the variables we are interested in. We can also arrange the filtered data frame by a variable to give it a cleaner look.
+
+<br/>
+
+For this example, I am interested in all observations of life expectancy and GDP per capita for Canada, Hong Kong, and Kenya. The filtered dataset will be sorted by country
+
+```{r, filter select arrange}
+gapminder %>% 
+    select(country, year, lifeExp, gdpPercap) %>%
+    filter(country == "Canada" | country == "Hong Kong, China" | country == "Kenya") %>%
+    arrange(country)
+```
+
+
+## Exploring Various Plot Types
+
+For exploring relationships in our data, a plot between two variables is a good start to look for potential relations or correlations. A good example would be GDP per capita and life expectancy. A simple scatterplot can give us a rough idea if there any relationships between these two variables.
+
+```{r, scatter}
+ggplot(gapminder, aes(gdpPercap, lifeExp)) +
+    scale_x_log10() +
+    geom_point(aes(colour=continent), alpha = 0.3) + 
+    geom_smooth(method ='lm')
+```
+<br/>
+
+Based on the scatterplot: There is a positive correlation between life expectancy and GDP per capita, which indicates we should expect an increase in life expectancy with increasing GDP per capita.
+
+<br/>
+
+Let's say we are interested in the life expectancy variable: Our scatter points seen in the previous exampke are color coded based on continent, but with so many points it is unclear with the distribution of points in life expectancy for each continent. The following histogram plots with give a better idea with the distribution and frequency of life expectancy for the whole data set and a breakdown for each continent:
+
+```{r, facet lifeExp}
+ggplot(gapminder, aes(lifeExp)) + 
+    geom_histogram(aes(fill=continent), bins = 40)
+
+ggplot(gapminder, aes(lifeExp)) + 
+    geom_histogram(aes(fill=continent), bins = 40) +
+    facet_wrap(~ continent)
+```
+<br/>
+
+As observed, the African countries have a lower life expectancy while Oceania and Europe generally have higher life expectancy. From these observations, we may be tempted to believe Oceania and Europe (for example) should theoretically have high GDP per capita. However, it would be better to breakdown the scatterplots (between GDP per capita and life expectancy) by continent and apply a regression line to each plot, as the strength of the relationship between the two variables can vary by continent
+
+```{r, facet scatter}
+ggplot(gapminder, aes(gdpPercap, lifeExp)) +
+    scale_x_log10() +
+    geom_point(aes(colour=continent), alpha = 0.3) +
+    facet_wrap(~ continent) +
+    geom_smooth(method ='lm')
+```
+<br/>
+
+As observed the strength of relationship between life expectancy and GDP per capita can vary from continent to continent. The regression line for the strength of relationship looks similar for Africa, Europe, and Asia. While the Americas and Oceania have a similar strength of relationship, but more in a positive direction than Africa, Europe, and Asia.
+
+
+    
+
+    
